@@ -1,0 +1,30 @@
+{
+  "name": "rentify",
+  "version": "1.0.0",
+  "description": "A comprehensive rental platform for properties, electronics, bikes, and cars in India",
+  "main": "app.py",
+  "scripts": {
+    "dev": "python app.py",
+    "start": "gunicorn app:app",
+    "build": "echo 'No build process required for Python/Flask'",
+    "install-deps": "pip install -r requirements.txt",
+    "test": "echo 'No tests specified' && exit 0"
+  },
+  "keywords": [
+    "rental",
+    "flask",
+    "react",
+    "properties",
+    "electronics",
+    "vehicles",
+    "india"
+  ],
+  "author": "Rentify Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -5,6 +5,267 @@ const Notification = ({ message, show }) => {
     }, message);
 };
 
+// Login Modal Component
+const LoginModal = ({ show, onClose, onSwitchToSignup }) => {
+    const [isLogin, setIsLogin] = React.useState(true);
+    const [formData, setFormData] = React.useState({
+        email: '',
+        password: '',
+        name: '',
+        confirmPassword: ''
+    });
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (isLogin) {
+            // Login logic
+            console.log('Login:', { email: formData.email, password: formData.password });
+            onClose();
+        } else {
+            // Signup logic
+            if (formData.password !== formData.confirmPassword) {
+                alert('Passwords do not match!');
+                return;
+            }
+            console.log('Signup:', formData);
+            onClose();
+        }
+    };
+
+    const switchMode = () => {
+        setIsLogin(!isLogin);
+        setFormData({
+            email: '',
+            password: '',
+            name: '',
+            confirmPassword: ''
+        });
+    };
+
+    if (!show) return null;
+
+    return React.createElement('div', { className: 'modal-overlay' },
+        React.createElement('div', { className: 'modal-content' },
+            React.createElement('div', { className: 'modal-header' },
+                React.createElement('h2', null, isLogin ? 'Login' : 'Sign Up'),
+                React.createElement('button', { 
+                    className: 'close-modal', 
+                    onClick: onClose 
+                }, '×')
+            ),
+            React.createElement('form', { onSubmit: handleSubmit, className: 'auth-form' },
+                !isLogin && React.createElement('div', { className: 'form-group' },
+                    React.createElement('label', null, 'Full Name'),
+                    React.createElement('input', {
+                        type: 'text',
+                        name: 'name',
+                        value: formData.name,
+                        onChange: handleInputChange,
+                        required: !isLogin,
+                        placeholder: 'Enter your full name'
+                    })
+                ),
+                React.createElement('div', { className: 'form-group' },
+                    React.createElement('label', null, 'Email'),
+                    React.createElement('input', {
+                        type: 'email',
+                        name: 'email',
+                        value: formData.email,
+                        onChange: handleInputChange,
+                        required: true,
+                        placeholder: 'Enter your email'
+                    })
+                ),
+                React.createElement('div', { className: 'form-group' },
+                    React.createElement('label', null, 'Password'),
+                    React.createElement('input', {
+                        type: 'password',
+                        name: 'password',
+                        value: formData.password,
+                        onChange: handleInputChange,
+                        required: true,
+                        placeholder: 'Enter your password'
+                    })
+                ),
+                !isLogin && React.createElement('div', { className: 'form-group' },
+                    React.createElement('label', null, 'Confirm Password'),
+                    React.createElement('input', {
+                        type: 'password',
+                        name: 'confirmPassword',
+                        value: formData.confirmPassword,
+                        onChange: handleInputChange,
+                        required: !isLogin,
+                        placeholder: 'Confirm your password'
+                    })
+                ),
+                React.createElement('button', { 
+                    type: 'submit', 
+                    className: 'btn btn-primary btn-full' 
+                }, isLogin ? 'Login' : 'Sign Up'),
+                React.createElement('div', { className: 'auth-switch' },
+                    React.createElement('p', null, 
+                        isLogin ? "Don't have an account? " : "Already have an account? ",
+                        React.createElement('button', {
+                            type: 'button',
+                            className: 'switch-btn',
+                            onClick: switchMode
+                        }, isLogin ? 'Sign Up' : 'Login')
+                    )
+                )
+            )
+        )
+    );
+};
+
+// Product Details Modal Component
+const ProductDetailsModal = ({ product, show, onClose, addToCart, showNotification }) => {
+    const [selectedImage, setSelectedImage] = React.useState(0);
+    
+    if (!show || !product) return null;
+
+    const handleRentNow = () => {
+        addToCart({
+            ...product,
+            quantity: 1
+        });
+        showNotification(`${product.title} added to cart!`);
+        onClose();
+    };
+
+    const renderStars = (rating) => {
+        const stars = [];
+        const actualRating = product.rating || 4;
+        for (let i = 1; i <= 5; i++) {
+            stars.push(
+                React.createElement('i', { 
+                    key: i, 
+                    className: `fas fa-star ${i <= actualRating ? 'filled' : ''}`
+                })
+            );
+        }
+        return stars;
+    };
+
+    return React.createElement('div', { className: 'modal-overlay' },
+        React.createElement('div', { className: 'modal-content product-details-modal' },
+            React.createElement('div', { className: 'modal-header' },
+                React.createElement('h2', null, product.title),
+                React.createElement('button', { 
+                    className: 'close-modal', 
+                    onClick: onClose 
+                }, '×')
+            ),
+            React.createElement('div', { className: 'product-details-content' },
+                React.createElement('div', { className: 'product-images' },
+                    React.createElement('div', { className: 'main-image' },
+                        React.createElement('img', { 
+                            src: product.image, 
+                            alt: product.title 
+                        })
+                    )
+                ),
+                React.createElement('div', { className: 'product-info' },
+                    React.createElement('div', { className: 'product-header' },
+                        React.createElement('h3', null, product.title),
+                        React.createElement('div', { className: 'product-rating' },
+                            renderStars(product.rating),
+                            React.createElement('span', null, `(${product.rating || 4})`)
+                        )
+                    ),
+                    
+                    React.createElement('div', { className: 'product-price' },
+                        React.createElement('span', null, `₹${product.price}/month`)
+                    ),
+                    
+                    React.createElement('div', { className: 'product-specs' },
+                        React.createElement('h4', null, 'Specifications'),
+                        React.createElement('ul', null,
+                            product.brand && React.createElement('li', null,
+                                React.createElement('strong', null, 'Brand: '),
+                                product.brand
+                            ),
+                            product.category && React.createElement('li', null,
+                                React.createElement('strong', null, 'Category: '),
+                                product.category
+                            ),
+                            product.location && React.createElement('li', null,
+                                React.createElement('strong', null, 'Location: '),
+                                product.location
+                            ),
+                            product.bedrooms && React.createElement('li', null,
+                                React.createElement('strong', null, 'Bedrooms: '),
+                                product.bedrooms
+                            ),
+                            product.bathrooms && React.createElement('li', null,
+                                React.createElement('strong', null, 'Bathrooms: '),
+                                product.bathrooms
+                            ),
+                            product.area && React.createElement('li', null,
+                                React.createElement('strong', null, 'Area: '),
+                                `${product.area} sq ft`
+                            ),
+                            product.specs && Array.isArray(product.specs) && product.specs.map((spec, index) =>
+                                React.createElement('li', { key: index }, spec)
+                            )
+                        )
+                    ),
+                    
+                    React.createElement('div', { className: 'product-description' },
+                        React.createElement('h4', null, 'Description'),
+                        React.createElement('p', null, 
+                            product.description || 
+                            `This ${product.category || 'item'} is available for rent at an affordable monthly rate. Perfect for your needs with quality assurance and reliable service.`
+                        )
+                    ),
+                    
+                    React.createElement('div', { className: 'product-actions' },
+                        React.createElement('button', { 
+                            className: 'btn btn-primary', 
+                            onClick: handleRentNow 
+                        }, 'Rent Now'),
+                        React.createElement('button', { 
+                            className: 'btn btn-outline',
+                            onClick: onClose
+                        }, 'Close')
+                    )
+                )
+            )
+        )
+    );
+};
+
+// Search Component
+const SearchComponent = ({ onSearch, searchQuery, setSearchQuery }) => {
+    const handleSearch = (e) => {
+        if (e.key === 'Enter' || e.type === 'click') {
+            onSearch(searchQuery);
+        }
+    };
+
+    return React.createElement('div', { className: 'search-container' },
+        React.createElement('div', { className: 'search-bar' },
+            React.createElement('input', {
+                type: 'text',
+                placeholder: 'Search for properties, electronics, bikes, cars...',
+                value: searchQuery,
+                onChange: (e) => setSearchQuery(e.target.value),
+                onKeyPress: handleSearch
+            }),
+            React.createElement('button', { 
+                onClick: () => onSearch(searchQuery)
+            }, React.createElement('i', { className: 'fas fa-search' }))
+        )
+    );
+};
+
 // Cart Modal Component
 const CartModal = ({ cartItems, removeFromCart, updateQuantity, closeCart, checkout }) => {
     const calculateTotal = () => {
@@ -83,7 +344,7 @@ const CartModal = ({ cartItems, removeFromCart, updateQuantity, closeCart, check
 };
 
 // Header Component
-const Header = ({ cartItemsCount, openCart, currentPage, navigateTo }) => {
+const Header = ({ cartItemsCount, openCart, currentPage, navigateTo, openLogin, user, logout, onSearch, searchQuery, setSearchQuery }) => {
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
     const toggleMenu = () => {
@@ -172,6 +433,11 @@ const Header = ({ cartItemsCount, openCart, currentPage, navigateTo }) => {
                 ),
                 
                 React.createElement('div', { className: 'header-actions' },
+                    React.createElement(SearchComponent, {
+                        onSearch: onSearch,
+                        searchQuery: searchQuery,
+                        setSearchQuery: setSearchQuery
+                    }),
                     React.createElement('div', { 
                         className: 'cart-icon', 
                         onClick: openCart 
@@ -180,8 +446,24 @@ const Header = ({ cartItemsCount, openCart, currentPage, navigateTo }) => {
                         cartItemsCount > 0 && React.createElement('span', { className: 'cart-count' }, cartItemsCount)
                     ),
                     React.createElement('div', { className: 'auth-buttons' },
-                        React.createElement('button', { className: 'login-btn' }, 'Login'),
-                        React.createElement('button', { className: 'signup-btn' }, 'Sign Up')
+                        user ? 
+                            React.createElement('div', { className: 'user-menu' },
+                                React.createElement('span', { className: 'user-name' }, `Hello, ${user.name}`),
+                                React.createElement('button', { 
+                                    className: 'logout-btn',
+                                    onClick: logout
+                                }, 'Logout')
+                            ) :
+                            React.createElement(React.Fragment, null,
+                                React.createElement('button', { 
+                                    className: 'login-btn',
+                                    onClick: () => openLogin(true)
+                                }, 'Login'),
+                                React.createElement('button', { 
+                                    className: 'signup-btn',
+                                    onClick: () => openLogin(false)
+                                }, 'Sign Up')
+                            )
                     )
                 )
             )
@@ -190,18 +472,16 @@ const Header = ({ cartItemsCount, openCart, currentPage, navigateTo }) => {
 };
 
 // Hero Component
-const Hero = () => {
+const Hero = ({ onSearch, searchQuery, setSearchQuery }) => {
     return React.createElement('section', { className: 'hero' },
         React.createElement('div', { className: 'container' },
             React.createElement('h1', null, 'Find Your Perfect Rental in India'),
             React.createElement('p', null, 'Discover properties, electronics, bikes, and cars for rent across India. Quality assured with verified listings and customer reviews.'),
-            React.createElement('div', { className: 'search-bar' },
-                React.createElement('input', { 
-                    type: 'text', 
-                    placeholder: 'Search for properties, electronics, bikes, cars...' 
-                }),
-                React.createElement('button', null, 'Search')
-            )
+            React.createElement(SearchComponent, {
+                onSearch: onSearch,
+                searchQuery: searchQuery,
+                setSearchQuery: setSearchQuery
+            })
         )
     );
 };
@@ -271,7 +551,7 @@ const CategorySection = ({ navigateTo }) => {
 };
 
 // Property Card Component
-const PropertyCard = ({ property, addToCart, showNotification }) => {
+const PropertyCard = ({ property, addToCart, showNotification, viewDetails }) => {
     const {
         id,
         title,
@@ -291,6 +571,10 @@ const PropertyCard = ({ property, addToCart, showNotification }) => {
             quantity: 1
         });
         showNotification(`${title} added to cart!`);
+    };
+
+    const handleViewDetails = () => {
+        viewDetails(property);
     };
 
     return React.createElement('div', { className: 'property-card' },
@@ -324,14 +608,17 @@ const PropertyCard = ({ property, addToCart, showNotification }) => {
                     className: 'btn btn-primary', 
                     onClick: handleRentNow 
                 }, 'Rent Now'),
-                React.createElement('button', { className: 'btn btn-outline' }, 'View Details')
+                React.createElement('button', { 
+                    className: 'btn btn-outline', 
+                    onClick: handleViewDetails 
+                }, 'View Details')
             )
         )
     );
 };
 
 // Product Card Component
-const ProductCard = ({ product, addToCart, showNotification }) => {
+const ProductCard = ({ product, addToCart, showNotification, viewDetails }) => {
     const {
         id,
         title,
@@ -353,13 +640,18 @@ const ProductCard = ({ product, addToCart, showNotification }) => {
         showNotification(`${title} added to cart!`);
     };
 
+    const handleViewDetails = () => {
+        viewDetails(product);
+    };
+
     const renderStars = (rating) => {
         const stars = [];
+        const actualRating = rating || 4;
         for (let i = 1; i <= 5; i++) {
             stars.push(
                 React.createElement('i', { 
                     key: i, 
-                    className: `fas fa-star ${i <= rating ? 'filled' : ''}`
+                    className: `fas fa-star ${i <= actualRating ? 'filled' : ''}`
                 })
             );
         }
@@ -379,11 +671,11 @@ const ProductCard = ({ product, addToCart, showNotification }) => {
             ),
             React.createElement('div', { className: 'product-rating' },
                 renderStars(rating),
-                React.createElement('span', null, `(${rating})`)
+                React.createElement('span', null, `(${rating || 4})`)
             ),
             React.createElement('div', { className: 'product-price' }, `₹${price}/month`),
             React.createElement('div', { className: 'product-features' },
-                specs.map((spec, index) => 
+                Array.isArray(specs) && specs.map((spec, index) => 
                     React.createElement('div', { key: index },
                         React.createElement('i', { className: 'fas fa-check' }),
                         React.createElement('span', null, spec)
@@ -395,7 +687,10 @@ const ProductCard = ({ product, addToCart, showNotification }) => {
                     className: 'btn btn-primary', 
                     onClick: handleRentNow 
                 }, 'Rent Now'),
-                React.createElement('button', { className: 'btn btn-outline' }, 'View Details')
+                React.createElement('button', { 
+                    className: 'btn btn-outline', 
+                    onClick: handleViewDetails 
+                }, 'View Details')
             )
         )
     );
@@ -496,7 +791,7 @@ const Footer = () => {
 };
 
 // Home Page Component
-const Home = ({ addToCart, showNotification, navigateTo }) => {
+const Home = ({ addToCart, showNotification, navigateTo, viewDetails, searchQuery, setSearchQuery, onSearch }) => {
     // Sample data for featured properties (12 properties)
     const featuredProperties = [
         {
@@ -601,7 +896,7 @@ const Home = ({ addToCart, showNotification, navigateTo }) => {
     ];
 
     return React.createElement('div', null,
-        React.createElement(Hero),
+        React.createElement(Hero, { onSearch, searchQuery, setSearchQuery }),
         React.createElement(CategorySection, { navigateTo }),
         
         // Featured Properties Section
@@ -617,7 +912,8 @@ const Home = ({ addToCart, showNotification, navigateTo }) => {
                             key: property.id, 
                             property: property, 
                             addToCart: addToCart,
-                            showNotification: showNotification
+                            showNotification: showNotification,
+                            viewDetails: viewDetails
                         })
                     )
                 ),
@@ -643,7 +939,8 @@ const Home = ({ addToCart, showNotification, navigateTo }) => {
                             key: product.id, 
                             product: product, 
                             addToCart: addToCart,
-                            showNotification: showNotification
+                            showNotification: showNotification,
+                            viewDetails: viewDetails
                         })
                     )
                 ),
@@ -674,7 +971,7 @@ const Home = ({ addToCart, showNotification, navigateTo }) => {
 };
 
 // Properties Page Component
-const Properties = ({ addToCart, showNotification }) => {
+const Properties = ({ addToCart, showNotification, viewDetails, searchQuery }) => {
     const [filter, setFilter] = React.useState('all');
     
     const properties = [
@@ -818,6 +1115,15 @@ const Properties = ({ addToCart, showNotification }) => {
         ? properties 
         : properties.filter(property => property.type.toLowerCase() === filter);
 
+    // Search functionality
+    const searchedProperties = searchQuery 
+        ? filteredProperties.filter(property => 
+            property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            property.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            property.type.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        : filteredProperties;
+
     return React.createElement('div', { className: 'section' },
         React.createElement('div', { className: 'container' },
             React.createElement('div', { className: 'section-title' },
@@ -844,13 +1150,23 @@ const Properties = ({ addToCart, showNotification }) => {
                 }, 'Studios')
             ),
             
+            (searchedProperties.length === 0 && searchQuery) ? 
+                React.createElement('div', { className: 'no-results' },
+                    React.createElement('p', null, `No properties found for "${searchQuery}"`),
+                    React.createElement('button', { 
+                        className: 'btn btn-primary',
+                        onClick: () => setFilter('all')
+                    }, 'Show All Properties')
+                ) : null,
+            
             React.createElement('div', { className: 'properties-grid' },
-                filteredProperties.map(property => 
+                searchedProperties.map(property => 
                     React.createElement(PropertyCard, { 
                         key: property.id, 
                         property: property, 
                         addToCart: addToCart,
-                        showNotification: showNotification
+                        showNotification: showNotification,
+                        viewDetails: viewDetails
                     })
                 )
             )
@@ -859,7 +1175,7 @@ const Properties = ({ addToCart, showNotification }) => {
 };
 
 // Electronics Page Component
-const Electronics = ({ addToCart, showNotification }) => {
+const Electronics = ({ addToCart, showNotification, viewDetails, searchQuery }) => {
     const [filter, setFilter] = React.useState('all');
     
     const electronics = [
@@ -991,6 +1307,16 @@ const Electronics = ({ addToCart, showNotification }) => {
         ? electronics 
         : electronics.filter(product => product.category.toLowerCase() === filter);
 
+    // Search functionality
+    const searchedElectronics = searchQuery 
+        ? filteredElectronics.filter(product => 
+            product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (Array.isArray(product.specs) && product.specs.some(spec => spec.toLowerCase().includes(searchQuery.toLowerCase())))
+          )
+        : filteredElectronics;
+
     return React.createElement('div', { className: 'section' },
         React.createElement('div', { className: 'container' },
             React.createElement('div', { className: 'section-title' },
@@ -1021,13 +1347,23 @@ const Electronics = ({ addToCart, showNotification }) => {
                 }, 'Gaming')
             ),
             
+            (searchedElectronics.length === 0 && searchQuery) ? 
+                React.createElement('div', { className: 'no-results' },
+                    React.createElement('p', null, `No electronics found for "${searchQuery}"`),
+                    React.createElement('button', { 
+                        className: 'btn btn-primary',
+                        onClick: () => setFilter('all')
+                    }, 'Show All Electronics')
+                ) : null,
+            
             React.createElement('div', { className: 'products-grid' },
-                filteredElectronics.map(product => 
+                searchedElectronics.map(product => 
                     React.createElement(ProductCard, { 
                         key: product.id, 
                         product: product, 
                         addToCart: addToCart,
-                        showNotification: showNotification
+                        showNotification: showNotification,
+                        viewDetails: viewDetails
                     })
                 )
             )
@@ -1036,7 +1372,7 @@ const Electronics = ({ addToCart, showNotification }) => {
 };
 
 // Vehicles Page Component
-const Vehicles = ({ addToCart, showNotification }) => {
+const Vehicles = ({ addToCart, showNotification, viewDetails, searchQuery }) => {
     const [filter, setFilter] = React.useState('all');
     
     // Bikes with proper images
@@ -1218,6 +1554,16 @@ const Vehicles = ({ addToCart, showNotification }) => {
         ? vehicles 
         : vehicles.filter(vehicle => vehicle.category.toLowerCase() === filter);
 
+    // Search functionality
+    const searchedVehicles = searchQuery 
+        ? filteredVehicles.filter(vehicle => 
+            vehicle.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            vehicle.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            vehicle.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (Array.isArray(vehicle.specs) && vehicle.specs.some(spec => spec.toLowerCase().includes(searchQuery.toLowerCase())))
+          )
+        : filteredVehicles;
+
     return React.createElement('div', { className: 'section' },
         React.createElement('div', { className: 'container' },
             React.createElement('div', { className: 'section-title' },
@@ -1244,13 +1590,23 @@ const Vehicles = ({ addToCart, showNotification }) => {
                 }, 'Cars')
             ),
             
+            (searchedVehicles.length === 0 && searchQuery) ? 
+                React.createElement('div', { className: 'no-results' },
+                    React.createElement('p', null, `No vehicles found for "${searchQuery}"`),
+                    React.createElement('button', { 
+                        className: 'btn btn-primary',
+                        onClick: () => setFilter('all')
+                    }, 'Show All Vehicles')
+                ) : null,
+            
             React.createElement('div', { className: 'products-grid' },
-                filteredVehicles.map(vehicle => 
+                searchedVehicles.map(vehicle => 
                     React.createElement(ProductCard, { 
                         key: vehicle.id, 
                         product: vehicle, 
                         addToCart: addToCart,
-                        showNotification: showNotification
+                        showNotification: showNotification,
+                        viewDetails: viewDetails
                     })
                 )
             )
@@ -1341,7 +1697,13 @@ const App = () => {
     const [cartItems, setCartItems] = React.useState([]);
     const [currentPage, setCurrentPage] = React.useState('home');
     const [showCart, setShowCart] = React.useState(false);
+    const [showLogin, setShowLogin] = React.useState(false);
+    const [isLoginMode, setIsLoginMode] = React.useState(true);
     const [notification, setNotification] = React.useState({ message: '', show: false });
+    const [selectedProduct, setSelectedProduct] = React.useState(null);
+    const [showProductDetails, setShowProductDetails] = React.useState(false);
+    const [searchQuery, setSearchQuery] = React.useState('');
+    const [user, setUser] = React.useState(null);
 
     const addToCart = (item) => {
         setCartItems(prevItems => {
@@ -1405,34 +1767,77 @@ const App = () => {
 
     const navigateTo = (page) => {
         setCurrentPage(page);
+        setSearchQuery(''); // Clear search when navigating
         window.scrollTo(0, 0);
     };
 
+    const openLogin = (isLogin) => {
+        setIsLoginMode(isLogin);
+        setShowLogin(true);
+    };
+
+    const closeLogin = () => {
+        setShowLogin(false);
+    };
+
+    const handleLogin = () => {
+        // Simple login simulation
+        const userData = {
+            name: "Demo User",
+            email: "demo@retify.com"
+        };
+        setUser(userData);
+        setShowLogin(false);
+        showNotification(`Welcome back, ${userData.name}!`);
+    };
+
+    const logout = () => {
+        setUser(null);
+        showNotification('Logged out successfully');
+    };
+
+    const viewDetails = (product) => {
+        setSelectedProduct(product);
+        setShowProductDetails(true);
+    };
+
+    const closeProductDetails = () => {
+        setShowProductDetails(false);
+        setSelectedProduct(null);
+    };
+
+    const handleSearch = (query) => {
+        setSearchQuery(query);
+        // If we're not on a searchable page, navigate to home
+        if (!['home', 'properties', 'electronics', 'vehicles'].includes(currentPage)) {
+            navigateTo('home');
+        }
+    };
+
     const renderPage = () => {
+        const commonProps = {
+            addToCart, 
+            showNotification,
+            viewDetails,
+            searchQuery
+        };
+
         switch(currentPage) {
             case 'properties':
-                return React.createElement(Properties, { 
-                    addToCart, 
-                    showNotification 
-                });
+                return React.createElement(Properties, commonProps);
             case 'electronics':
-                return React.createElement(Electronics, { 
-                    addToCart, 
-                    showNotification 
-                });
+                return React.createElement(Electronics, commonProps);
             case 'vehicles':
-                return React.createElement(Vehicles, { 
-                    addToCart, 
-                    showNotification 
-                });
+                return React.createElement(Vehicles, commonProps);
             case 'about':
                 return React.createElement(About);
             case 'home':
             default:
                 return React.createElement(Home, { 
-                    addToCart, 
-                    showNotification,
-                    navigateTo 
+                    ...commonProps,
+                    navigateTo,
+                    setSearchQuery,
+                    onSearch: handleSearch
                 });
         }
     };
@@ -1442,7 +1847,13 @@ const App = () => {
             cartItemsCount: getCartItemsCount(), 
             openCart: openCart,
             currentPage: currentPage,
-            navigateTo: navigateTo
+            navigateTo: navigateTo,
+            openLogin: openLogin,
+            user: user,
+            logout: logout,
+            onSearch: handleSearch,
+            searchQuery: searchQuery,
+            setSearchQuery: setSearchQuery
         }),
         React.createElement('main', null, renderPage()),
         React.createElement(Footer),
@@ -1453,6 +1864,18 @@ const App = () => {
             closeCart: closeCart,
             checkout: checkout
         }),
+        React.createElement(LoginModal, {
+            show: showLogin,
+            onClose: closeLogin,
+            onSwitchToSignup: () => setIsLoginMode(false)
+        }),
+        React.createElement(ProductDetailsModal, {
+            product: selectedProduct,
+            show: showProductDetails,
+            onClose: closeProductDetails,
+            addToCart: addToCart,
+            showNotification: showNotification
+        }),
         React.createElement(Notification, {
             message: notification.message,
             show: notification.show
@@ -1462,4 +1885,4 @@ const App = () => {
 
 // Render the App
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(React.createElement(App));
+root.render(React.createElement(App)); 

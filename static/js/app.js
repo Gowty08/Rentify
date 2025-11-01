@@ -5,8 +5,8 @@ const Notification = ({ message, show }) => {
     }, message);
 };
 
-// Login Modal Component
-const LoginModal = ({ show, onClose, onSwitchToSignup }) => {
+// Login Modal Component - RESTRUCTURED
+const LoginModal = ({ show, onClose, onSwitchToSignup, onLoginSuccess }) => {
     const [isLogin, setIsLogin] = React.useState(true);
     const [formData, setFormData] = React.useState({
         email: '',
@@ -14,6 +14,8 @@ const LoginModal = ({ show, onClose, onSwitchToSignup }) => {
         name: '',
         confirmPassword: ''
     });
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState('');
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -21,22 +23,85 @@ const LoginModal = ({ show, onClose, onSwitchToSignup }) => {
             ...prev,
             [name]: value
         }));
+        // Clear error when user starts typing
+        if (error) setError('');
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (isLogin) {
-            // Login logic
-            console.log('Login:', { email: formData.email, password: formData.password });
-            onClose();
-        } else {
-            // Signup logic
-            if (formData.password !== formData.confirmPassword) {
-                alert('Passwords do not match!');
-                return;
+    const validateForm = () => {
+        if (!formData.email || !formData.password) {
+            setError('Email and password are required');
+            return false;
+        }
+        
+        if (!isLogin) {
+            if (!formData.name) {
+                setError('Name is required');
+                return false;
             }
-            console.log('Signup:', formData);
+            if (formData.password !== formData.confirmPassword) {
+                setError('Passwords do not match');
+                return false;
+            }
+            if (formData.password.length < 6) {
+                setError('Password must be at least 6 characters long');
+                return false;
+            }
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            setError('Please enter a valid email address');
+            return false;
+        }
+        
+        return true;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        
+        if (!validateForm()) {
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            if (isLogin) {
+                // Login logic
+                console.log('Login attempt:', { email: formData.email, password: formData.password });
+                
+                // Simulate successful login
+                const userData = {
+                    name: formData.name || "Demo User",
+                    email: formData.email
+                };
+                
+                onLoginSuccess(userData);
+                showNotification(`Welcome back, ${userData.name}!`);
+            } else {
+                // Signup logic
+                console.log('Signup attempt:', formData);
+                
+                // Simulate successful signup
+                const userData = {
+                    name: formData.name,
+                    email: formData.email
+                };
+                
+                onLoginSuccess(userData);
+                showNotification(`Account created successfully! Welcome, ${userData.name}!`);
+            }
+            
             onClose();
+        } catch (err) {
+            setError(isLogin ? 'Invalid email or password' : 'Error creating account. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -48,6 +113,18 @@ const LoginModal = ({ show, onClose, onSwitchToSignup }) => {
             name: '',
             confirmPassword: ''
         });
+        setError('');
+    };
+
+    const handleClose = () => {
+        setError('');
+        setFormData({
+            email: '',
+            password: '',
+            name: '',
+            confirmPassword: ''
+        });
+        onClose();
     };
 
     if (!show) return null;
@@ -58,9 +135,17 @@ const LoginModal = ({ show, onClose, onSwitchToSignup }) => {
                 React.createElement('h2', null, isLogin ? 'Login' : 'Sign Up'),
                 React.createElement('button', { 
                     className: 'close-modal', 
-                    onClick: onClose 
+                    onClick: handleClose,
+                    disabled: loading
                 }, '×')
             ),
+            
+            // Error message
+            error && React.createElement('div', { className: 'error-message' },
+                React.createElement('i', { className: 'fas fa-exclamation-circle' }),
+                error
+            ),
+            
             React.createElement('form', { onSubmit: handleSubmit, className: 'auth-form' },
                 !isLogin && React.createElement('div', { className: 'form-group' },
                     React.createElement('label', null, 'Full Name'),
@@ -70,7 +155,8 @@ const LoginModal = ({ show, onClose, onSwitchToSignup }) => {
                         value: formData.name,
                         onChange: handleInputChange,
                         required: !isLogin,
-                        placeholder: 'Enter your full name'
+                        placeholder: 'Enter your full name',
+                        disabled: loading
                     })
                 ),
                 React.createElement('div', { className: 'form-group' },
@@ -81,7 +167,8 @@ const LoginModal = ({ show, onClose, onSwitchToSignup }) => {
                         value: formData.email,
                         onChange: handleInputChange,
                         required: true,
-                        placeholder: 'Enter your email'
+                        placeholder: 'Enter your email',
+                        disabled: loading
                     })
                 ),
                 React.createElement('div', { className: 'form-group' },
@@ -92,7 +179,8 @@ const LoginModal = ({ show, onClose, onSwitchToSignup }) => {
                         value: formData.password,
                         onChange: handleInputChange,
                         required: true,
-                        placeholder: 'Enter your password'
+                        placeholder: 'Enter your password',
+                        disabled: loading
                     })
                 ),
                 !isLogin && React.createElement('div', { className: 'form-group' },
@@ -103,20 +191,28 @@ const LoginModal = ({ show, onClose, onSwitchToSignup }) => {
                         value: formData.confirmPassword,
                         onChange: handleInputChange,
                         required: !isLogin,
-                        placeholder: 'Confirm your password'
+                        placeholder: 'Confirm your password',
+                        disabled: loading
                     })
                 ),
                 React.createElement('button', { 
                     type: 'submit', 
-                    className: 'btn btn-primary btn-full' 
-                }, isLogin ? 'Login' : 'Sign Up'),
+                    className: `btn btn-primary btn-full ${loading ? 'loading' : ''}`,
+                    disabled: loading
+                }, 
+                    loading ? React.createElement(React.Fragment, null,
+                        React.createElement('i', { className: 'fas fa-spinner fa-spin' }),
+                        ' Processing...'
+                    ) : (isLogin ? 'Login' : 'Sign Up')
+                ),
                 React.createElement('div', { className: 'auth-switch' },
                     React.createElement('p', null, 
                         isLogin ? "Don't have an account? " : "Already have an account? ",
                         React.createElement('button', {
                             type: 'button',
                             className: 'switch-btn',
-                            onClick: switchMode
+                            onClick: switchMode,
+                            disabled: loading
                         }, isLogin ? 'Sign Up' : 'Login')
                     )
                 )
@@ -361,7 +457,7 @@ const Header = ({ cartItemsCount, openCart, currentPage, navigateTo, openLogin, 
                         e.preventDefault();
                         navigateTo('home');
                     }
-                }, 'Retify'),
+                }, 'Rentify'),
                 
                 React.createElement('button', { 
                     className: 'mobile-menu-toggle', 
@@ -735,7 +831,7 @@ const Footer = () => {
         React.createElement('div', { className: 'container' },
             React.createElement('div', { className: 'footer-content' },
                 React.createElement('div', { className: 'footer-column' },
-                    React.createElement('h3', null, 'Retify'),
+                    React.createElement('h3', null, 'Rentify'),
                     React.createElement('p', null, "India's leading rental platform for properties, electronics, bikes, and cars. Quality assured with verified listings."),
                     React.createElement('div', { className: 'social-links' },
                         React.createElement('a', { href: '#' }, React.createElement('i', { className: 'fab fa-facebook' })),
@@ -778,13 +874,13 @@ const Footer = () => {
                         ),
                         React.createElement('li', null, 
                             React.createElement('i', { className: 'fas fa-envelope' }), 
-                            ' info@retify.com'
+                            ' info@rentify.com'
                         )
                     )
                 )
             ),
             React.createElement('div', { className: 'footer-bottom' },
-                React.createElement('p', null, '© 2023 Retify. All rights reserved.')
+                React.createElement('p', null, '© 2023 Rentify. All rights reserved.')
             )
         )
     );
@@ -880,7 +976,7 @@ const Home = ({ addToCart, showNotification, navigateTo, viewDetails, searchQuer
             name: "Priya Patel",
             avatar: "https://randomuser.me/api/portraits/women/44.jpg",
             rating: 4,
-            text: "Found my dream apartment through Retify. The verification process gave me confidence in the listing.",
+            text: "Found my dream apartment through Rentify. The verification process gave me confidence in the listing.",
             date: "1 month ago",
             item: "2BHK in HSR Layout"
         },
@@ -1468,7 +1564,7 @@ const Vehicles = ({ addToCart, showNotification, viewDetails, searchQuery }) => 
             title: "Suzuki Access 125",
             brand: "Suzuki",
             price: 2200,
-            image: "https://tse1.mm.bing.net/th/id/OIF.O94oDqB2Ins6fD5QcUOaow?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3",
+            image: "https://tse1.mm.bing.net/th/id/OIP.4MWLR0Z_PRCa10XbAmDRfgHaHH?w=960&h=922&rs=1&pid=ImgDetMain&o=7&rm=3",
             category: "Scooter",
             specs: ["124cc", "55kmpl", "Premium"],
             rating: 4.4
@@ -1627,13 +1723,13 @@ const About = () => {
                 React.createElement('div', { className: 'about-text' },
                     React.createElement('h3', null, 'Our Mission'),
                     React.createElement('p', null,
-                        "Retify was founded with a simple mission: to make renting easy, accessible, and trustworthy " +
+                        "Rentify was founded with a simple mission: to make renting easy, accessible, and trustworthy " +
                         "for everyone in India. We understand the challenges people face when looking for rental options - " +
                         "from properties to vehicles and electronics. Our platform brings verified listings, transparent " +
                         "pricing, and a seamless rental experience to your fingertips."
                     ),
                     
-                    React.createElement('h3', null, 'Why Choose Retify?'),
+                    React.createElement('h3', null, 'Why Choose Rentify?'),
                     React.createElement('div', { className: 'features-grid' },
                         React.createElement('div', { className: 'feature' },
                             React.createElement('i', { className: 'fas fa-shield-alt' }),
@@ -1659,15 +1755,15 @@ const About = () => {
                     
                     React.createElement('h3', null, 'Our Story'),
                     React.createElement('p', null,
-                        "Started in 2020, Retify has grown to become one of India's leading rental platforms. " +
+                        "Started in 2020, Rentify has grown to become one of India's leading rental platforms. " +
                         "We've helped thousands of customers find their perfect rental options across categories. " +
                         "Whether you're a student looking for a laptop, a professional seeking accommodation, " +
-                        "or a family needing a car for vacation, Retify is your one-stop solution."
+                        "or a family needing a car for vacation, Rentify is your one-stop solution."
                     )
                 ),
                 
                 React.createElement('div', { className: 'stats-section' },
-                    React.createElement('h3', null, 'Retify in Numbers'),
+                    React.createElement('h3', null, 'Rentify in Numbers'),
                     React.createElement('div', { className: 'stats-grid' },
                         React.createElement('div', { className: 'stat' },
                             React.createElement('h4', null, '50,000+'),
@@ -1780,15 +1876,10 @@ const App = () => {
         setShowLogin(false);
     };
 
-    const handleLogin = () => {
-        // Simple login simulation
-        const userData = {
-            name: "Demo User",
-            email: "demo@retify.com"
-        };
+    const handleLoginSuccess = (userData) => {
         setUser(userData);
         setShowLogin(false);
-        showNotification(`Welcome back, ${userData.name}!`);
+        showNotification(`Welcome ${userData.name ? 'back, ' + userData.name + '!' : 'to Rentify!'}`);
     };
 
     const logout = () => {
@@ -1867,7 +1958,8 @@ const App = () => {
         React.createElement(LoginModal, {
             show: showLogin,
             onClose: closeLogin,
-            onSwitchToSignup: () => setIsLoginMode(false)
+            onSwitchToSignup: () => setIsLoginMode(false),
+            onLoginSuccess: handleLoginSuccess
         }),
         React.createElement(ProductDetailsModal, {
             product: selectedProduct,
@@ -1885,4 +1977,4 @@ const App = () => {
 
 // Render the App
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(React.createElement(App)); 
+root.render(React.createElement(App));

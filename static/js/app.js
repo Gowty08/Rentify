@@ -77,8 +77,11 @@ const LoginModal = ({ show, onClose, onSwitchToSignup, onLoginSuccess }) => {
                 
                 // Simulate successful login
                 const userData = {
+                    id: Math.random().toString(36).substr(2, 9),
                     name: formData.name || "Demo User",
-                    email: formData.email
+                    email: formData.email,
+                    phone: '+91 98765 43210',
+                    joinDate: new Date().toLocaleDateString()
                 };
                 
                 onLoginSuccess(userData);
@@ -89,8 +92,11 @@ const LoginModal = ({ show, onClose, onSwitchToSignup, onLoginSuccess }) => {
                 
                 // Simulate successful signup
                 const userData = {
+                    id: Math.random().toString(36).substr(2, 9),
                     name: formData.name,
-                    email: formData.email
+                    email: formData.email,
+                    phone: '+91 98765 43210',
+                    joinDate: new Date().toLocaleDateString()
                 };
                 
                 onLoginSuccess(userData);
@@ -339,10 +345,42 @@ const ProductDetailsModal = ({ product, show, onClose, addToCart, showNotificati
 };
 
 // Search Component
-const SearchComponent = ({ onSearch, searchQuery, setSearchQuery }) => {
+const SearchComponent = ({ onSearch, searchQuery, setSearchQuery, navigateTo }) => {
     const handleSearch = (e) => {
         if (e.key === 'Enter' || e.type === 'click') {
             onSearch(searchQuery);
+        }
+    };
+
+    const handleCategoryNavigation = (query) => {
+        const lowerQuery = query.toLowerCase();
+        
+        // Navigate to specific pages based on search terms
+        if (lowerQuery.includes('property') || lowerQuery.includes('apartment') || 
+            lowerQuery.includes('house') || lowerQuery.includes('villa') || 
+            lowerQuery.includes('studio')) {
+            navigateTo('properties');
+        } else if (lowerQuery.includes('electronic') || lowerQuery.includes('laptop') || 
+                   lowerQuery.includes('camera') || lowerQuery.includes('phone') || 
+                   lowerQuery.includes('tablet') || lowerQuery.includes('gaming')) {
+            navigateTo('electronics');
+        } else if (lowerQuery.includes('car') || lowerQuery.includes('bike') || 
+                   lowerQuery.includes('scooter') || lowerQuery.includes('vehicle') ||
+                   lowerQuery.includes('motorcycle')) {
+            navigateTo('vehicles');
+        }
+        // If no specific category match, stay on current page but filter results
+    };
+
+    const handleSearchClick = () => {
+        onSearch(searchQuery);
+        handleCategoryNavigation(searchQuery);
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            onSearch(searchQuery);
+            handleCategoryNavigation(searchQuery);
         }
     };
 
@@ -353,19 +391,28 @@ const SearchComponent = ({ onSearch, searchQuery, setSearchQuery }) => {
                 placeholder: 'Search for properties, electronics, bikes, cars...',
                 value: searchQuery,
                 onChange: (e) => setSearchQuery(e.target.value),
-                onKeyPress: handleSearch
+                onKeyPress: handleKeyPress
             }),
             React.createElement('button', { 
-                onClick: () => onSearch(searchQuery)
+                onClick: handleSearchClick
             }, React.createElement('i', { className: 'fas fa-search' }))
         )
     );
 };
 
 // Cart Modal Component
-const CartModal = ({ cartItems, removeFromCart, updateQuantity, closeCart, checkout }) => {
+const CartModal = ({ cartItems, removeFromCart, updateQuantity, closeCart, checkout, user, openLogin }) => {
     const calculateTotal = () => {
         return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    };
+
+    const handleProceedToCheckout = () => {
+        if (!user) {
+            closeCart();
+            openLogin(true);
+            return;
+        }
+        checkout();
     };
 
     return React.createElement('div', { className: 'cart-modal' },
@@ -430,8 +477,8 @@ const CartModal = ({ cartItems, removeFromCart, updateQuantity, closeCart, check
                             }, 'Continue Shopping'),
                             React.createElement('button', { 
                                 className: 'btn-checkout',
-                                onClick: checkout
-                            }, 'Proceed to Checkout')
+                                onClick: handleProceedToCheckout
+                            }, user ? 'Proceed to Checkout' : 'Login to Checkout')
                         )
                     )
                   )
@@ -514,6 +561,17 @@ const Header = ({ cartItemsCount, openCart, currentPage, navigateTo, openLogin, 
                                 }
                             }, 'Vehicles')
                         ),
+                        user && React.createElement('li', null, 
+                            React.createElement('a', { 
+                                href: '#',
+                                className: currentPage === 'orders' ? 'active' : '',
+                                onClick: (e) => {
+                                    e.preventDefault();
+                                    navigateTo('orders');
+                                    setIsMenuOpen(false);
+                                }
+                            }, 'My Orders')
+                        ),
                         React.createElement('li', null, 
                             React.createElement('a', { 
                                 href: '#',
@@ -532,7 +590,8 @@ const Header = ({ cartItemsCount, openCart, currentPage, navigateTo, openLogin, 
                     React.createElement(SearchComponent, {
                         onSearch: onSearch,
                         searchQuery: searchQuery,
-                        setSearchQuery: setSearchQuery
+                        setSearchQuery: setSearchQuery,
+                        navigateTo: navigateTo
                     }),
                     React.createElement('div', { 
                         className: 'cart-icon', 
@@ -544,7 +603,10 @@ const Header = ({ cartItemsCount, openCart, currentPage, navigateTo, openLogin, 
                     React.createElement('div', { className: 'auth-buttons' },
                         user ? 
                             React.createElement('div', { className: 'user-menu' },
-                                React.createElement('span', { className: 'user-name' }, `Hello, ${user.name}`),
+                                React.createElement('span', { 
+                                    className: 'user-name',
+                                    onClick: () => navigateTo('profile')
+                                }, `Hello, ${user.name}`),
                                 React.createElement('button', { 
                                     className: 'logout-btn',
                                     onClick: logout
@@ -567,8 +629,111 @@ const Header = ({ cartItemsCount, openCart, currentPage, navigateTo, openLogin, 
     );
 };
 
+// Order Success Component
+const OrderSuccess = ({ order, onContinueShopping, onViewOrders }) => {
+    return React.createElement('div', { className: 'section' },
+        React.createElement('div', { className: 'container' },
+            React.createElement('div', { className: 'order-success' },
+                React.createElement('div', { className: 'success-icon' },
+                    React.createElement('i', { className: 'fas fa-check-circle' })
+                ),
+                React.createElement('h1', null, 'Order Placed Successfully!'),
+                React.createElement('p', null, `Thank you for your rental order. Your order #${order.id} has been confirmed.`),
+                
+                React.createElement('div', { className: 'order-summary-card' },
+                    React.createElement('h3', null, 'Order Summary'),
+                    React.createElement('div', { className: 'order-details-grid' },
+                        React.createElement('div', { className: 'order-info' },
+                            React.createElement('h4', null, 'Order Details'),
+                            React.createElement('div', { className: 'detail-row' },
+                                React.createElement('span', null, 'Order ID:'),
+                                React.createElement('span', null, order.id)
+                            ),
+                            React.createElement('div', { className: 'detail-row' },
+                                React.createElement('span', null, 'Order Date:'),
+                                React.createElement('span', null, order.orderDate)
+                            ),
+                            React.createElement('div', { className: 'detail-row' },
+                                React.createElement('span', null, 'Total Amount:'),
+                                React.createElement('span', null, `₹${order.totalAmount}`)
+                            ),
+                            React.createElement('div', { className: 'detail-row' },
+                                React.createElement('span', null, 'Rental Duration:'),
+                                React.createElement('span', null, `${order.duration} month${order.duration > 1 ? 's' : ''}`)
+                            )
+                        ),
+                        React.createElement('div', { className: 'order-items-summary' },
+                            React.createElement('h4', null, 'Rental Items'),
+                            React.createElement('div', { className: 'ordered-items' },
+                                order.items.map(item => 
+                                    React.createElement('div', { key: item.id, className: 'ordered-item' },
+                                        React.createElement('div', { className: 'item-image' },
+                                            React.createElement('img', { src: item.image, alt: item.title })
+                                        ),
+                                        React.createElement('div', { className: 'item-details' },
+                                            React.createElement('h5', null, item.title),
+                                            React.createElement('p', null, `₹${item.price}/month × ${item.quantity}`),
+                                            React.createElement('p', { className: 'item-total' }, 
+                                                `Total: ₹${item.price * item.quantity * order.duration}`
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
+                
+                React.createElement('div', { className: 'delivery-info' },
+                    React.createElement('h4', null, 'What happens next?'),
+                    React.createElement('div', { className: 'timeline' },
+                        React.createElement('div', { className: 'timeline-step' },
+                            React.createElement('div', { className: 'step-icon' },
+                                React.createElement('i', { className: 'fas fa-clipboard-check' })
+                            ),
+                            React.createElement('div', { className: 'step-content' },
+                                React.createElement('h5', null, 'Order Confirmed'),
+                                React.createElement('p', null, 'Your order has been confirmed and is being processed.')
+                            )
+                        ),
+                        React.createElement('div', { className: 'timeline-step' },
+                            React.createElement('div', { className: 'step-icon' },
+                                React.createElement('i', { className: 'fas fa-truck' })
+                            ),
+                            React.createElement('div', { className: 'step-content' },
+                                React.createElement('h5', null, 'Delivery Scheduled'),
+                                React.createElement('p', null, `We will contact you within 24 hours to schedule delivery for ${order.startDate}.`)
+                            )
+                        ),
+                        React.createElement('div', { className: 'timeline-step' },
+                            React.createElement('div', { className: 'step-icon' },
+                                React.createElement('i', { className: 'fas fa-home' })
+                            ),
+                            React.createElement('div', { className: 'step-content' },
+                                React.createElement('h5', null, 'Enjoy Your Rental'),
+                                React.createElement('p', null, 'Your rental period begins on the scheduled delivery date.')
+                            )
+                        )
+                    )
+                ),
+                
+                React.createElement('div', { className: 'success-actions' },
+                    React.createElement('button', {
+                        className: 'btn btn-primary',
+                        onClick: onViewOrders
+                    }, 'View My Orders'),
+                    React.createElement('button', {
+                        className: 'btn btn-outline',
+                        onClick: onContinueShopping
+                    }, 'Continue Shopping')
+                )
+            )
+        )
+    );
+};
+
 // Hero Component
-const Hero = ({ onSearch, searchQuery, setSearchQuery }) => {
+const Hero = ({ onSearch, searchQuery, setSearchQuery, navigateTo }) => {
     return React.createElement('section', { className: 'hero' },
         React.createElement('div', { className: 'container' },
             React.createElement('h1', null, 'Find Your Perfect Rental in India'),
@@ -576,7 +741,8 @@ const Hero = ({ onSearch, searchQuery, setSearchQuery }) => {
             React.createElement(SearchComponent, {
                 onSearch: onSearch,
                 searchQuery: searchQuery,
-                setSearchQuery: setSearchQuery
+                setSearchQuery: setSearchQuery,
+                navigateTo: navigateTo
             })
         )
     );
@@ -825,6 +991,530 @@ const ReviewCard = ({ review }) => {
     );
 };
 
+// User Profile Component
+const UserProfile = ({ user, updateUser, showNotification }) => {
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [formData, setFormData] = React.useState({
+        name: user?.name || '',
+        email: user?.email || '',
+        phone: user?.phone || '',
+        address: user?.address || ''
+    });
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSave = () => {
+        updateUser(formData);
+        setIsEditing(false);
+        showNotification('Profile updated successfully!');
+    };
+
+    const handleCancel = () => {
+        setFormData({
+            name: user?.name || '',
+            email: user?.email || '',
+            phone: user?.phone || '',
+            address: user?.address || ''
+        });
+        setIsEditing(false);
+    };
+
+    return React.createElement('div', { className: 'section' },
+        React.createElement('div', { className: 'container' },
+            React.createElement('div', { className: 'profile-header' },
+                React.createElement('div', { className: 'profile-avatar' },
+                    React.createElement('i', { className: 'fas fa-user-circle' })
+                ),
+                React.createElement('div', { className: 'profile-info' },
+                    React.createElement('h1', null, user?.name || 'User'),
+                    React.createElement('p', null, `Member since ${user?.joinDate || '2024'}`)
+                )
+            ),
+            
+            React.createElement('div', { className: 'profile-content' },
+                React.createElement('div', { className: 'profile-section' },
+                    React.createElement('div', { className: 'section-header' },
+                        React.createElement('h2', null, 'Personal Information'),
+                        !isEditing && React.createElement('button', {
+                            className: 'btn btn-outline',
+                            onClick: () => setIsEditing(true)
+                        }, 'Edit Profile')
+                    ),
+                    
+                    React.createElement('div', { className: 'profile-form' },
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Full Name'),
+                            React.createElement('input', {
+                                type: 'text',
+                                name: 'name',
+                                value: formData.name,
+                                onChange: handleInputChange,
+                                disabled: !isEditing,
+                                placeholder: 'Enter your full name'
+                            })
+                        ),
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Email'),
+                            React.createElement('input', {
+                                type: 'email',
+                                name: 'email',
+                                value: formData.email,
+                                onChange: handleInputChange,
+                                disabled: !isEditing,
+                                placeholder: 'Enter your email'
+                            })
+                        ),
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Phone'),
+                            React.createElement('input', {
+                                type: 'tel',
+                                name: 'phone',
+                                value: formData.phone,
+                                onChange: handleInputChange,
+                                disabled: !isEditing,
+                                placeholder: 'Enter your phone number'
+                            })
+                        ),
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Address'),
+                            React.createElement('textarea', {
+                                name: 'address',
+                                value: formData.address,
+                                onChange: handleInputChange,
+                                disabled: !isEditing,
+                                placeholder: 'Enter your address',
+                                rows: 3
+                            })
+                        ),
+                        
+                        isEditing && React.createElement('div', { className: 'form-actions' },
+                            React.createElement('button', {
+                                className: 'btn btn-primary',
+                                onClick: handleSave
+                            }, 'Save Changes'),
+                            React.createElement('button', {
+                                className: 'btn btn-outline',
+                                onClick: handleCancel
+                            }, 'Cancel')
+                        )
+                    )
+                ),
+                
+                React.createElement('div', { className: 'profile-section' },
+                    React.createElement('h2', null, 'Account Statistics'),
+                    React.createElement('div', { className: 'stats-grid' },
+                        React.createElement('div', { className: 'stat-card' },
+                            React.createElement('i', { className: 'fas fa-shopping-cart' }),
+                            React.createElement('div', null,
+                                React.createElement('h3', null, '12'),
+                                React.createElement('p', null, 'Total Orders')
+                            )
+                        ),
+                        React.createElement('div', { className: 'stat-card' },
+                            React.createElement('i', { className: 'fas fa-home' }),
+                            React.createElement('div', null,
+                                React.createElement('h3', null, '3'),
+                                React.createElement('p', null, 'Active Rentals')
+                            )
+                        ),
+                        React.createElement('div', { className: 'stat-card' },
+                            React.createElement('i', { className: 'fas fa-star' }),
+                            React.createElement('div', null,
+                                React.createElement('h3', null, '4.8'),
+                                React.createElement('p', null, 'Avg Rating')
+                            )
+                        ),
+                        React.createElement('div', { className: 'stat-card' },
+                            React.createElement('i', { className: 'fas fa-calendar' }),
+                            React.createElement('div', null,
+                                React.createElement('h3', null, '8'),
+                                React.createElement('p', null, 'Months Member')
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    );
+};
+
+// Order History Component
+const OrderHistory = ({ orders, showNotification }) => {
+    const [filter, setFilter] = React.useState('all');
+
+    const filteredOrders = filter === 'all' 
+        ? orders 
+        : orders.filter(order => order.status === filter);
+
+    const getStatusColor = (status) => {
+        switch(status) {
+            case 'completed': return 'success';
+            case 'active': return 'primary';
+            case 'pending': return 'warning';
+            case 'cancelled': return 'error';
+            default: return 'default';
+        }
+    };
+
+    const handleExtendRental = (orderId) => {
+        showNotification('Rental extension request sent!');
+    };
+
+    const handleCancelOrder = (orderId) => {
+        showNotification('Order cancellation request submitted!');
+    };
+
+    return React.createElement('div', { className: 'section' },
+        React.createElement('div', { className: 'container' },
+            React.createElement('div', { className: 'section-title' },
+                React.createElement('h2', null, 'My Orders'),
+                React.createElement('p', null, 'Manage your rental orders and track their status')
+            ),
+            
+            React.createElement('div', { className: 'filter-buttons' },
+                React.createElement('button', { 
+                    className: `filter-btn ${filter === 'all' ? 'active' : ''}`,
+                    onClick: () => setFilter('all')
+                }, 'All Orders'),
+                React.createElement('button', { 
+                    className: `filter-btn ${filter === 'active' ? 'active' : ''}`,
+                    onClick: () => setFilter('active')
+                }, 'Active'),
+                React.createElement('button', { 
+                    className: `filter-btn ${filter === 'completed' ? 'active' : ''}`,
+                    onClick: () => setFilter('completed')
+                }, 'Completed'),
+                React.createElement('button', { 
+                    className: `filter-btn ${filter === 'pending' ? 'active' : ''}`,
+                    onClick: () => setFilter('pending')
+                }, 'Pending')
+            ),
+            
+            filteredOrders.length === 0 ? 
+                React.createElement('div', { className: 'no-orders' },
+                    React.createElement('i', { className: 'fas fa-box-open' }),
+                    React.createElement('h3', null, 'No orders found'),
+                    React.createElement('p', null, 
+                        filter === 'all' 
+                            ? "You haven't placed any orders yet."
+                            : `You don't have any ${filter} orders.`
+                    )
+                ) :
+                React.createElement('div', { className: 'orders-list' },
+                    filteredOrders.map(order => 
+                        React.createElement('div', { key: order.id, className: 'order-card' },
+                            React.createElement('div', { className: 'order-header' },
+                                React.createElement('div', { className: 'order-info' },
+                                    React.createElement('h3', null, order.itemTitle),
+                                    React.createElement('p', null, `Order #${order.id} • ${order.date}`)
+                                ),
+                                React.createElement('div', { className: `order-status ${getStatusColor(order.status)}` },
+                                    order.status.charAt(0).toUpperCase() + order.status.slice(1)
+                                )
+                            ),
+                            React.createElement('div', { className: 'order-content' },
+                                React.createElement('div', { className: 'order-image' },
+                                    React.createElement('img', { src: order.image, alt: order.itemTitle })
+                                ),
+                                React.createElement('div', { className: 'order-details' },
+                                    React.createElement('div', { className: 'order-specs' },
+                                        React.createElement('div', { className: 'spec-row' },
+                                            React.createElement('strong', null, 'Category:'),
+                                            React.createElement('span', null, order.category)
+                                        ),
+                                        React.createElement('div', { className: 'spec-row' },
+                                            React.createElement('strong', null, 'Duration:'),
+                                            React.createElement('span', null, `${order.duration} month${order.duration > 1 ? 's' : ''}`)
+                                        ),
+                                        React.createElement('div', { className: 'spec-row' },
+                                            React.createElement('strong', null, 'Start Date:'),
+                                            React.createElement('span', null, order.startDate)
+                                        ),
+                                        React.createElement('div', { className: 'spec-row' },
+                                            React.createElement('strong', null, 'End Date:'),
+                                            React.createElement('span', null, order.endDate)
+                                        )
+                                    ),
+                                    React.createElement('div', { className: 'order-price' },
+                                        React.createElement('span', { className: 'price-amount' }, `₹${order.totalAmount}`),
+                                        React.createElement('small', null, 'total')
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: 'order-actions' },
+                                order.status === 'active' && 
+                                    React.createElement('button', {
+                                        className: 'btn btn-primary',
+                                        onClick: () => handleExtendRental(order.id)
+                                    }, 'Extend Rental'),
+                                (order.status === 'active' || order.status === 'pending') && 
+                                    React.createElement('button', {
+                                        className: 'btn btn-outline',
+                                        onClick: () => handleCancelOrder(order.id)
+                                    }, 'Cancel Order'),
+                                React.createElement('button', {
+                                    className: 'btn btn-outline'
+                                }, 'View Details')
+                            )
+                        )
+                    )
+                )
+        )
+    );
+};
+
+// Checkout/Place Order Component
+const Checkout = ({ cartItems, user, onOrderSuccess, onBack, showNotification }) => {
+    const [orderData, setOrderData] = React.useState({
+        duration: 1,
+        startDate: new Date().toISOString().split('T')[0],
+        paymentMethod: 'credit_card',
+        address: user?.address || '',
+        specialInstructions: ''
+    });
+    const [loading, setLoading] = React.useState(false);
+
+    const calculateTotal = () => {
+        return cartItems.reduce((total, item) => total + (item.price * item.quantity * orderData.duration), 0);
+    };
+
+    const calculateSubtotal = () => {
+        return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setOrderData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handlePlaceOrder = async () => {
+        setLoading(true);
+        
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const order = {
+                id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+                items: [...cartItems],
+                totalAmount: calculateTotal(),
+                duration: orderData.duration,
+                startDate: orderData.startDate,
+                endDate: new Date(new Date(orderData.startDate).setMonth(new Date(orderData.startDate).getMonth() + parseInt(orderData.duration))).toISOString().split('T')[0],
+                status: 'pending',
+                paymentMethod: orderData.paymentMethod,
+                orderDate: new Date().toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                })
+            };
+            
+            onOrderSuccess(order);
+            showNotification('Order placed successfully!');
+        } catch (error) {
+            showNotification('Error placing order. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return React.createElement('div', { className: 'section' },
+        React.createElement('div', { className: 'container' },
+            React.createElement('div', { className: 'section-title' },
+                React.createElement('h2', null, 'Checkout'),
+                React.createElement('p', null, 'Review your order and complete the rental process')
+            ),
+            
+            React.createElement('div', { className: 'checkout-content' },
+                React.createElement('div', { className: 'checkout-form' },
+                    React.createElement('div', { className: 'form-section' },
+                        React.createElement('h3', null, 'Rental Details'),
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Rental Duration (months)'),
+                            React.createElement('select', {
+                                name: 'duration',
+                                value: orderData.duration,
+                                onChange: handleInputChange
+                            },
+                                [1,2,3,4,5,6,7,8,9,10,11,12].map(month => 
+                                    React.createElement('option', { key: month, value: month }, 
+                                        `${month} month${month > 1 ? 's' : ''}`
+                                    )
+                                )
+                            )
+                        ),
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Start Date'),
+                            React.createElement('input', {
+                                type: 'date',
+                                name: 'startDate',
+                                value: orderData.startDate,
+                                onChange: handleInputChange,
+                                min: new Date().toISOString().split('T')[0]
+                            })
+                        )
+                    ),
+                    
+                    React.createElement('div', { className: 'form-section' },
+                        React.createElement('h3', null, 'Delivery Information'),
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Delivery Address'),
+                            React.createElement('textarea', {
+                                name: 'address',
+                                value: orderData.address,
+                                onChange: handleInputChange,
+                                placeholder: 'Enter your complete delivery address',
+                                rows: 4
+                            })
+                        ),
+                        React.createElement('div', { className: 'form-group' },
+                            React.createElement('label', null, 'Special Instructions (Optional)'),
+                            React.createElement('textarea', {
+                                name: 'specialInstructions',
+                                value: orderData.specialInstructions,
+                                onChange: handleInputChange,
+                                placeholder: 'Any special delivery instructions...',
+                                rows: 3
+                            })
+                        )
+                    ),
+                    
+                    React.createElement('div', { className: 'form-section' },
+                        React.createElement('h3', null, 'Payment Method'),
+                        React.createElement('div', { className: 'payment-options' },
+                            React.createElement('label', { className: 'payment-option' },
+                                React.createElement('input', {
+                                    type: 'radio',
+                                    name: 'paymentMethod',
+                                    value: 'credit_card',
+                                    checked: orderData.paymentMethod === 'credit_card',
+                                    onChange: handleInputChange
+                                }),
+                                React.createElement('div', { className: 'payment-content' },
+                                    React.createElement('i', { className: 'fas fa-credit-card' }),
+                                    React.createElement('span', null, 'Credit/Debit Card')
+                                )
+                            ),
+                            React.createElement('label', { className: 'payment-option' },
+                                React.createElement('input', {
+                                    type: 'radio',
+                                    name: 'paymentMethod',
+                                    value: 'upi',
+                                    checked: orderData.paymentMethod === 'upi',
+                                    onChange: handleInputChange
+                                }),
+                                React.createElement('div', { className: 'payment-content' },
+                                    React.createElement('i', { className: 'fas fa-mobile-alt' }),
+                                    React.createElement('span', null, 'UPI Payment')
+                                )
+                            ),
+                            React.createElement('label', { className: 'payment-option' },
+                                React.createElement('input', {
+                                    type: 'radio',
+                                    name: 'paymentMethod',
+                                    value: 'net_banking',
+                                    checked: orderData.paymentMethod === 'net_banking',
+                                    onChange: handleInputChange
+                                }),
+                                React.createElement('div', { className: 'payment-content' },
+                                    React.createElement('i', { className: 'fas fa-university' }),
+                                    React.createElement('span', null, 'Net Banking')
+                                )
+                            ),
+                            React.createElement('label', { className: 'payment-option' },
+                                React.createElement('input', {
+                                    type: 'radio',
+                                    name: 'paymentMethod',
+                                    value: 'cash_on_delivery',
+                                    checked: orderData.paymentMethod === 'cash_on_delivery',
+                                    onChange: handleInputChange
+                                }),
+                                React.createElement('div', { className: 'payment-content' },
+                                    React.createElement('i', { className: 'fas fa-money-bill-wave' }),
+                                    React.createElement('span', null, 'Cash on Delivery')
+                                )
+                            )
+                        )
+                    )
+                ),
+                
+                React.createElement('div', { className: 'order-summary' },
+                    React.createElement('h3', null, 'Order Summary'),
+                    React.createElement('div', { className: 'order-items' },
+                        cartItems.map(item => 
+                            React.createElement('div', { key: item.id, className: 'order-item' },
+                                React.createElement('div', { className: 'item-image' },
+                                    React.createElement('img', { src: item.image, alt: item.title })
+                                ),
+                                React.createElement('div', { className: 'item-details' },
+                                    React.createElement('h4', null, item.title),
+                                    React.createElement('p', null, `₹${item.price}/month × ${item.quantity}`)
+                                ),
+                                React.createElement('div', { className: 'item-total' },
+                                    `₹${item.price * item.quantity * orderData.duration}`
+                                )
+                            )
+                        )
+                    ),
+                    
+                    React.createElement('div', { className: 'order-totals' },
+                        React.createElement('div', { className: 'total-row' },
+                            React.createElement('span', null, 'Subtotal:'),
+                            React.createElement('span', null, `₹${calculateSubtotal()}`)
+                        ),
+                        React.createElement('div', { className: 'total-row' },
+                            React.createElement('span', null, 'Duration:'),
+                            React.createElement('span', null, `${orderData.duration} month${orderData.duration > 1 ? 's' : ''}`)
+                        ),
+                        React.createElement('div', { className: 'total-row' },
+                            React.createElement('span', null, 'Delivery:'),
+                            React.createElement('span', null, '₹0')
+                        ),
+                        React.createElement('div', { className: 'total-row total' },
+                            React.createElement('span', null, 'Total:'),
+                            React.createElement('span', null, `₹${calculateTotal()}`)
+                        )
+                    ),
+                    
+                    React.createElement('div', { className: 'checkout-actions' },
+                        React.createElement('button', {
+                            className: 'btn btn-outline',
+                            onClick: onBack
+                        }, 'Back to Cart'),
+                        React.createElement('button', {
+                            className: `btn btn-primary ${loading ? 'loading' : ''}`,
+                            onClick: handlePlaceOrder,
+                            disabled: loading || cartItems.length === 0
+                        }, 
+                            loading ? 
+                                React.createElement(React.Fragment, null,
+                                    React.createElement('i', { className: 'fas fa-spinner fa-spin' }),
+                                    ' Processing...'
+                                ) : 
+                                `Place Order - ₹${calculateTotal()}`
+                        )
+                    ),
+                    
+                    React.createElement('div', { className: 'security-notice' },
+                        React.createElement('i', { className: 'fas fa-shield-alt' }),
+                        React.createElement('span', null, 'Your payment is secure and encrypted')
+                    )
+                )
+            )
+        )
+    );
+};
+
 // Footer Component
 const Footer = () => {
     return React.createElement('footer', { className: 'footer' },
@@ -992,7 +1682,12 @@ const Home = ({ addToCart, showNotification, navigateTo, viewDetails, searchQuer
     ];
 
     return React.createElement('div', null,
-        React.createElement(Hero, { onSearch, searchQuery, setSearchQuery }),
+        React.createElement(Hero, { 
+            onSearch: onSearch, 
+            searchQuery: searchQuery, 
+            setSearchQuery: setSearchQuery,
+            navigateTo: navigateTo 
+        }),
         React.createElement(CategorySection, { navigateTo }),
         
         // Featured Properties Section
@@ -1800,6 +2495,53 @@ const App = () => {
     const [showProductDetails, setShowProductDetails] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [user, setUser] = React.useState(null);
+    const [orders, setOrders] = React.useState([]);
+    const [showCheckout, setShowCheckout] = React.useState(false);
+    const [orderSuccess, setOrderSuccess] = React.useState(null);
+
+    // Sample orders data
+    React.useEffect(() => {
+        if (user) {
+            setOrders([
+                {
+                    id: 'ORD001',
+                    itemTitle: 'MacBook Pro 16-inch',
+                    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+                    category: 'Laptop',
+                    duration: 3,
+                    startDate: '2024-01-15',
+                    endDate: '2024-04-15',
+                    totalAmount: 36000,
+                    status: 'active',
+                    date: 'Jan 15, 2024'
+                },
+                {
+                    id: 'ORD002',
+                    itemTitle: 'Yamaha MT-15',
+                    image: 'https://tse4.mm.bing.net/th/id/OIP.9qPpGYmIvl6fV3CL5HsKQgHaE6?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3',
+                    category: 'Bike',
+                    duration: 2,
+                    startDate: '2024-02-01',
+                    endDate: '2024-04-01',
+                    totalAmount: 6000,
+                    status: 'completed',
+                    date: 'Feb 1, 2024'
+                },
+                {
+                    id: 'ORD003',
+                    itemTitle: 'Luxury Apartment in Bandra',
+                    image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
+                    category: 'Apartment',
+                    duration: 6,
+                    startDate: '2024-03-01',
+                    endDate: '2024-09-01',
+                    totalAmount: 270000,
+                    status: 'active',
+                    date: 'Mar 1, 2024'
+                }
+            ]);
+        }
+    }, [user]);
 
     const addToCart = (item) => {
         setCartItems(prevItems => {
@@ -1842,12 +2584,25 @@ const App = () => {
     };
 
     const checkout = () => {
-        if (cartItems.length === 0) return;
-        
-        const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        showNotification(`Checkout successful! Total: ₹${total}/month`);
-        setCartItems([]);
         setShowCart(false);
+        setShowCheckout(true);
+    };
+
+    const handleOrderSuccess = (order) => {
+        setOrders(prev => [order, ...prev]);
+        setCartItems([]);
+        setShowCheckout(false);
+        setOrderSuccess(order);
+    };
+
+    const handleContinueShopping = () => {
+        setOrderSuccess(null);
+        setCurrentPage('home');
+    };
+
+    const handleViewOrders = () => {
+        setOrderSuccess(null);
+        setCurrentPage('orders');
     };
 
     const showNotification = (message) => {
@@ -1864,6 +2619,8 @@ const App = () => {
     const navigateTo = (page) => {
         setCurrentPage(page);
         setSearchQuery(''); // Clear search when navigating
+        setShowCheckout(false);
+        setOrderSuccess(null);
         window.scrollTo(0, 0);
     };
 
@@ -1882,9 +2639,18 @@ const App = () => {
         showNotification(`Welcome ${userData.name ? 'back, ' + userData.name + '!' : 'to Rentify!'}`);
     };
 
+    const updateUser = (userData) => {
+        setUser(prev => ({ ...prev, ...userData }));
+    };
+
     const logout = () => {
         setUser(null);
+        setOrders([]);
+        setCartItems([]);
         showNotification('Logged out successfully');
+        if (['profile', 'orders'].includes(currentPage)) {
+            navigateTo('home');
+        }
     };
 
     const viewDetails = (product) => {
@@ -1899,13 +2665,28 @@ const App = () => {
 
     const handleSearch = (query) => {
         setSearchQuery(query);
-        // If we're not on a searchable page, navigate to home
-        if (!['home', 'properties', 'electronics', 'vehicles'].includes(currentPage)) {
-            navigateTo('home');
-        }
+        // The actual navigation is handled in the SearchComponent
     };
 
     const renderPage = () => {
+        if (orderSuccess) {
+            return React.createElement(OrderSuccess, {
+                order: orderSuccess,
+                onContinueShopping: handleContinueShopping,
+                onViewOrders: handleViewOrders
+            });
+        }
+
+        if (showCheckout) {
+            return React.createElement(Checkout, {
+                cartItems: cartItems,
+                user: user,
+                onOrderSuccess: handleOrderSuccess,
+                onBack: () => setShowCheckout(false),
+                showNotification: showNotification
+            });
+        }
+
         const commonProps = {
             addToCart, 
             showNotification,
@@ -1914,6 +2695,41 @@ const App = () => {
         };
 
         switch(currentPage) {
+            case 'profile':
+                return user ? React.createElement(UserProfile, {
+                    user: user,
+                    updateUser: updateUser,
+                    showNotification: showNotification
+                }) : React.createElement('div', { className: 'section' },
+                    React.createElement('div', { className: 'container' },
+                        React.createElement('div', { className: 'auth-required' },
+                            React.createElement('i', { className: 'fas fa-user-lock' }),
+                            React.createElement('h2', null, 'Authentication Required'),
+                            React.createElement('p', null, 'Please login to view your profile'),
+                            React.createElement('button', {
+                                className: 'btn btn-primary',
+                                onClick: () => openLogin(true)
+                            }, 'Login Now')
+                        )
+                    )
+                );
+            case 'orders':
+                return user ? React.createElement(OrderHistory, {
+                    orders: orders,
+                    showNotification: showNotification
+                }) : React.createElement('div', { className: 'section' },
+                    React.createElement('div', { className: 'container' },
+                        React.createElement('div', { className: 'auth-required' },
+                            React.createElement('i', { className: 'fas fa-user-lock' }),
+                            React.createElement('h2', null, 'Authentication Required'),
+                            React.createElement('p', null, 'Please login to view your orders'),
+                            React.createElement('button', {
+                                className: 'btn btn-primary',
+                                onClick: () => openLogin(true)
+                            }, 'Login Now')
+                        )
+                    )
+                );
             case 'properties':
                 return React.createElement(Properties, commonProps);
             case 'electronics':
@@ -1934,7 +2750,7 @@ const App = () => {
     };
 
     return React.createElement('div', { className: 'App' },
-        React.createElement(Header, { 
+        !showCheckout && !orderSuccess && React.createElement(Header, { 
             cartItemsCount: getCartItemsCount(), 
             openCart: openCart,
             currentPage: currentPage,
@@ -1947,13 +2763,15 @@ const App = () => {
             setSearchQuery: setSearchQuery
         }),
         React.createElement('main', null, renderPage()),
-        React.createElement(Footer),
+        !showCheckout && !orderSuccess && React.createElement(Footer),
         showCart && React.createElement(CartModal, {
             cartItems: cartItems,
             removeFromCart: removeFromCart,
             updateQuantity: updateQuantity,
             closeCart: closeCart,
-            checkout: checkout
+            checkout: checkout,
+            user: user,
+            openLogin: openLogin
         }),
         React.createElement(LoginModal, {
             show: showLogin,

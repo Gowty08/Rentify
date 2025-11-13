@@ -5,7 +5,7 @@ const Notification = ({ message, show }) => {
     }, message);
 };
 
-// Login Modal Component - RESTRUCTURED
+// Login Modal Component
 const LoginModal = ({ show, onClose, onSwitchToSignup, onLoginSuccess }) => {
     const [isLogin, setIsLogin] = React.useState(true);
     const [formData, setFormData] = React.useState({
@@ -812,7 +812,7 @@ const CategorySection = ({ navigateTo }) => {
     );
 };
 
-// Property Card Component
+// Property Card Component - FIXED
 const PropertyCard = ({ property, addToCart, showNotification, viewDetails }) => {
     const {
         id,
@@ -826,7 +826,8 @@ const PropertyCard = ({ property, addToCart, showNotification, viewDetails }) =>
         isFeatured = false
     } = property;
 
-    const handleRentNow = () => {
+    const handleRentNow = (e) => {
+        e.stopPropagation();
         addToCart({
             ...property,
             type: 'property',
@@ -835,13 +836,17 @@ const PropertyCard = ({ property, addToCart, showNotification, viewDetails }) =>
         showNotification(`${title} added to cart!`);
     };
 
-    const handleViewDetails = () => {
+    const handleViewDetails = (e) => {
+        e.stopPropagation();
         viewDetails(property);
     };
 
     return React.createElement('div', { className: 'property-card' },
         React.createElement('div', { className: 'property-image' },
-            React.createElement('img', { src: image, alt: title }),
+            React.createElement('img', { 
+                src: image, 
+                alt: title
+            }),
             isFeatured && React.createElement('div', { className: 'property-badge' }, 'Featured')
         ),
         React.createElement('div', { className: 'property-content' },
@@ -879,7 +884,7 @@ const PropertyCard = ({ property, addToCart, showNotification, viewDetails }) =>
     );
 };
 
-// Product Card Component
+// Product Card Component - FIXED
 const ProductCard = ({ product, addToCart, showNotification, viewDetails }) => {
     const {
         id,
@@ -893,7 +898,8 @@ const ProductCard = ({ product, addToCart, showNotification, viewDetails }) => {
         isFeatured = false
     } = product;
 
-    const handleRentNow = () => {
+    const handleRentNow = (e) => {
+        e.stopPropagation();
         addToCart({
             ...product,
             type: 'product',
@@ -902,7 +908,8 @@ const ProductCard = ({ product, addToCart, showNotification, viewDetails }) => {
         showNotification(`${title} added to cart!`);
     };
 
-    const handleViewDetails = () => {
+    const handleViewDetails = (e) => {
+        e.stopPropagation();
         viewDetails(product);
     };
 
@@ -922,7 +929,10 @@ const ProductCard = ({ product, addToCart, showNotification, viewDetails }) => {
 
     return React.createElement('div', { className: 'product-card' },
         React.createElement('div', { className: 'product-image' },
-            React.createElement('img', { src: image, alt: title }),
+            React.createElement('img', { 
+                src: image, 
+                alt: title
+            }),
             isFeatured && React.createElement('div', { className: 'product-badge' }, 'Popular')
         ),
         React.createElement('div', { className: 'product-content' },
@@ -937,7 +947,7 @@ const ProductCard = ({ product, addToCart, showNotification, viewDetails }) => {
             ),
             React.createElement('div', { className: 'product-price' }, `₹${price}/month`),
             React.createElement('div', { className: 'product-features' },
-                Array.isArray(specs) && specs.map((spec, index) => 
+                Array.isArray(specs) && specs.slice(0, 2).map((spec, index) => // Limit specs display
                     React.createElement('div', { key: index },
                         React.createElement('i', { className: 'fas fa-check' }),
                         React.createElement('span', null, spec)
@@ -1144,8 +1154,8 @@ const UserProfile = ({ user, updateUser, showNotification }) => {
     );
 };
 
-// Order History Component
-const OrderHistory = ({ orders, showNotification }) => {
+// Order History Component - FIXED
+const OrderHistory = ({ orders, showNotification, viewOrderDetails }) => {
     const [filter, setFilter] = React.useState('all');
 
     const filteredOrders = filter === 'all' 
@@ -1168,6 +1178,27 @@ const OrderHistory = ({ orders, showNotification }) => {
 
     const handleCancelOrder = (orderId) => {
         showNotification('Order cancellation request submitted!');
+    };
+
+    const handleViewDetails = (order) => {
+        // Create a product-like object from order data for the modal
+        const productDetails = {
+            id: order.id,
+            title: order.itemTitle,
+            image: order.image,
+            price: order.totalAmount / order.duration,
+            category: order.category,
+            description: `Rental order details for ${order.itemTitle}. Duration: ${order.duration} months. Status: ${order.status}.`,
+            specs: [
+                `Order ID: ${order.id}`,
+                `Duration: ${order.duration} months`,
+                `Start Date: ${order.startDate}`,
+                `End Date: ${order.endDate}`,
+                `Status: ${order.status}`,
+                `Total Amount: ₹${order.totalAmount}`
+            ]
+        };
+        viewOrderDetails(productDetails);
     };
 
     return React.createElement('div', { className: 'section' },
@@ -1220,7 +1251,10 @@ const OrderHistory = ({ orders, showNotification }) => {
                             ),
                             React.createElement('div', { className: 'order-content' },
                                 React.createElement('div', { className: 'order-image' },
-                                    React.createElement('img', { src: order.image, alt: order.itemTitle })
+                                    React.createElement('img', { 
+                                        src: order.image, 
+                                        alt: order.itemTitle
+                                    })
                                 ),
                                 React.createElement('div', { className: 'order-details' },
                                     React.createElement('div', { className: 'order-specs' },
@@ -1259,7 +1293,8 @@ const OrderHistory = ({ orders, showNotification }) => {
                                         onClick: () => handleCancelOrder(order.id)
                                     }, 'Cancel Order'),
                                 React.createElement('button', {
-                                    className: 'btn btn-outline'
+                                    className: 'btn btn-outline',
+                                    onClick: () => handleViewDetails(order)
                                 }, 'View Details')
                             )
                         )
@@ -2483,7 +2518,7 @@ const About = () => {
     );
 };
 
-// Main App Component
+// Main App Component - FIXED
 const App = () => {
     const [cartItems, setCartItems] = React.useState([]);
     const [currentPage, setCurrentPage] = React.useState('home');
@@ -2716,7 +2751,8 @@ const App = () => {
             case 'orders':
                 return user ? React.createElement(OrderHistory, {
                     orders: orders,
-                    showNotification: showNotification
+                    showNotification: showNotification,
+                    viewOrderDetails: viewDetails // FIXED: Pass the viewDetails function
                 }) : React.createElement('div', { className: 'section' },
                     React.createElement('div', { className: 'container' },
                         React.createElement('div', { className: 'auth-required' },
